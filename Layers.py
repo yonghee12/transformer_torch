@@ -1,7 +1,8 @@
-from . import *
+from Sublayers import *
 
-class EncoderLayer:
+class EncoderLayer(nn.Module):
     def __init__(self):
+        super().__init__()
         self.multi_head_attention = MultiHeadAttention()
         self.feed_forward = PositionWiseFeedForward()
 

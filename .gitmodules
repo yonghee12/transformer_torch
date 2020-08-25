@@ -1,0 +1,3 @@
+[submodule "deepnp"]
+	path = deepnp
+	url = https://github.com/yonghee12/deepnp.git

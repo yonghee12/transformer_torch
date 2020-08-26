@@ -1,3 +1,5 @@
+from math import sqrt
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -42,5 +44,21 @@ class PositionWiseFeedForward(nn.Module):
         return self.addnorm(x0, Fx)
 
 
+class ScaledDotProductAttention(nn.Module):
+    def __init__(self, d_k: int, dropout: float = 0.1):
+        """"""
+        super().__init__()
+        self.sqrt_d_k = sqrt(d_k)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, Q, K, V):
+        # 모두 (N, T, d_k)
+        K_t = K.transpose(1, 2)
+        scaled_dot = (Q @ K_t) / self.sqrt_d_k          # (N, T, d_k) * (N, T, d_k) -> (N, T, T)
+        attention_score = F.softmax(scaled_dot, dim=2)  # N, T, T의 dimension 중 마지막 dimension 기준으로 softmax
+        return attention_score @ V
+
 class MultiHeadAttention(nn.Module):
-    pass
+    def __init__(self, d_model, d_k, n_heads):
+        super().__init__()
+        self.weights = nn.ModuleList([nn.Linear(d_model, d_k)])

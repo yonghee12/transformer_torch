@@ -46,19 +46,27 @@ class PositionWiseFeedForward(nn.Module):
 
 class ScaledDotProductAttention(nn.Module):
     def __init__(self, d_k: int, dropout: float = 0.1):
-        """"""
         super().__init__()
         self.sqrt_d_k = sqrt(d_k)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, Q, K, V):
-        # 모두 (N, T, d_k)
         K_t = K.transpose(1, 2)
-        scaled_dot = (Q @ K_t) / self.sqrt_d_k          # (N, T, d_k) * (N, T, d_k) -> (N, T, T)
+        scaled_dot = (Q @ K_t) / self.sqrt_d_k  # (N, T, d_k) * (N, T, d_k) -> (N, T, T)
         attention_score = F.softmax(scaled_dot, dim=2)  # N, T, T의 dimension 중 마지막 dimension 기준으로 softmax
         return attention_score @ V
 
+
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_k, n_heads):
+    def __init__(self, d_model, n_heads, d_k=None, dropout=0.1):
         super().__init__()
-        self.weights = nn.ModuleList([nn.Linear(d_model, d_k)])
+        self.d_k = d_model // n_heads if d_k is None else d_k
+        self.attentions = nn.Module([ScaledDotProductAttention(self.d_k, dropout) for _ in range(n_heads)])
+
+    def forward(self, q, k, v):
+        Q = q @ Wq
+        K = k @ Wk
+        V = v @ Wv
+
+        multiheads = np.hstack((head1, head2, head3, head4, head5, head6, head7, head8))  # shape: (s, 64 * 8)
+        output = multiheads @ W  # shape: (s, 512) @ (512, 512) -> (s, 512)

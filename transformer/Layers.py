@@ -13,7 +13,7 @@ class EncoderLayer(nn.Module):
         return x2
 
 
-class DecoderLayer:
+class DecoderLayer(nn.Module):
     def __init__(self):
         super().__init__()
         self.self_attention = MultiHeadAttention()

@@ -27,3 +27,14 @@ class DecoderBlock:
         for layer in self.layers:
             x = layer(x)
         return x
+
+
+class InputBlock(nn.Module):
+    def __init__(self, vocab_size, d_model, pad_idx):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, d_model, padding_idx=pad_idx)
+
+
+class OutputBlock(nn.Module):
+    def __init__(self):
+        super().__init__()

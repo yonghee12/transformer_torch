@@ -8,9 +8,9 @@ from .Layers import *
 
 
 class EncoderBlock(nn.Module):
-    def __init__(self, n_layers):
+    def __init__(self, n_layers, d_model, d_ff, n_heads=8, dropout=0.1):
         super().__init__()
-        self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
+        self.layers = nn.ModuleList([EncoderLayer(d_model, d_ff, n_heads, dropout) for _ in range(n_layers)])
 
     def forward(self, x):
         for layer in self.layers:
@@ -19,9 +19,9 @@ class EncoderBlock(nn.Module):
 
 
 class DecoderBlock:
-    def __init__(self, n_layers):
+    def __init__(self, n_layers, d_model, d_ff, n_heads=8, dropout=0.1):
         super().__init__()
-        self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
+        self.layers = nn.ModuleList([DecoderLayer(d_model, d_ff, n_heads, dropout) for _ in range(n_layers)])
 
     def forward(self, x):
         for layer in self.layers:

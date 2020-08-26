@@ -9,8 +9,8 @@ class EncoderLayer(nn.Module):
         self.addnorms = nn.ModuleList([AddNorm(d_model, dropout=dropout) for _ in range(2)])
 
     def forward(self, x):
-        x1 = self.addnorms[0](self.self_attention(x))
-        x2 = self.addnorms[1](self.feed_forward(x1))
+        x1 = self.addnorms[0](x, self.self_attention(x))
+        x2 = self.addnorms[1](x1, self.feed_forward(x1))
         return x2
 
 
@@ -23,8 +23,8 @@ class DecoderLayer(nn.Module):
         self.addnorms = nn.ModuleList([AddNorm(d_model, dropout=dropout) for _ in range(3)])
 
     def forward(self, x, enc_out):
-        x1 = self.addnorms[0](self.self_attention(x, x, x))
-        x2 = self.addnorms[1](self.encoder_attention(x1, enc_out, enc_out))
-        x3 = self.addnorms[2](self.feed_forward(x2))
+        x1 = self.addnorms[0](x, self.self_attention(x, x, x))
+        x2 = self.addnorms[1](x1, self.encoder_attention(x1, enc_out, enc_out))
+        x3 = self.addnorms[2](x2, self.feed_forward(x2))
         return x3
 

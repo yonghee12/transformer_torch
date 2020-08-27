@@ -35,3 +35,12 @@ class ScaledDotProductAttention(nn.Module):
         scaled_dot = scaled_dot if mask is None else scaled_dot.masked_fill(mask == 0, -1e9)
         attention_score = self.dropout(F.softmax(scaled_dot, dim=-1))  # T, T 중 마지막 dimension 기준으로 softmax
         return attention_score @ V
+
+
+class PositionalEncoding(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        print("Not Implemented Yet")
+        return x

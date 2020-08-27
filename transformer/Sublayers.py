@@ -49,7 +49,7 @@ class MultiHeadAttention(nn.Module):
         # method 2 사용시
         self.attention = ScaledDotProductAttention(self.d_k, dropout)
 
-    def forward(self, q, k, v):
+    def forward(self, q, k, v, mask=None):
         # N: n_batch, T: seq_len
         # q, k, v는 (N, T, d_model), Wq, Wk, Wv는 (d_model, d_k)
         # Q, K, V는 N, T, d_k * n_heads (논문대로 학습하면 d_k * n_heads는 d_model과 같도록)
@@ -76,7 +76,11 @@ class MultiHeadAttention(nn.Module):
         Q_ = torch.transpose(Q.view(n_batch, seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
         K_ = torch.transpose(K.view(n_batch, seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
         V_ = torch.transpose(V.view(n_batch, seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
-        output = self.attention(Q_, K_, V_)                                            # N, n_heads, T, d_k
+
+        if mask is not None:
+            mask = mask.unsqueeze(1).unsqueeze(2)   # N, n_heads, T, d_k 를 만족시키기 위해. head에 대해 broadcasting 될 수 있도록
+
+        output = self.attention(Q_, K_, V_, mask)                                      # N, n_heads, T, d_k
         output = output.transpose(1, 2)                                                # N, T, n_heads, d_k
         output = output.contiguous().view(n_batch, seq_len, self.n_heads * self.d_k)   # N, T, n_heads * self.d_k(=d_model)
 

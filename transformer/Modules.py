@@ -29,8 +29,9 @@ class ScaledDotProductAttention(nn.Module):
         self.sqrt_d_k = sqrt(d_k)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, Q, K, V):
+    def forward(self, Q, K, V, mask):
         K_t = K.transpose(-1, -2)
         scaled_dot = (Q @ K_t) / self.sqrt_d_k  # (T, d_k) * (T, d_k) -> (T, T)
+        scaled_dot = scaled_dot if mask is None else scaled_dot.masked_fill(mask == 0, -1e9)
         attention_score = self.dropout(F.softmax(scaled_dot, dim=-1))  # T, T 중 마지막 dimension 기준으로 softmax
         return attention_score @ V

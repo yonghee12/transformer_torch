@@ -23,12 +23,11 @@ class PositionWiseFeedForward(nn.Module):
         super().__init__()
         self.fc1 = nn.Linear(d_model, d_ff)
         self.fc2 = nn.Linear(d_ff, d_model)
-        self.addnorm = AddNorm(d_model, dropout)
 
     def forward(self, x0):
         x1 = F.relu(self.fc1(x0))
         Fx = self.fc2(x1)
-        return self.addnorm(x0, Fx)
+        return Fx
 
 
 class MultiHeadAttention(nn.Module):
@@ -76,10 +75,6 @@ class MultiHeadAttention(nn.Module):
         Q_ = torch.transpose(Q.view(n_batch, seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
         K_ = torch.transpose(K.view(n_batch, seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
         V_ = torch.transpose(V.view(n_batch, seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
-
-        if mask is not None:
-            mask = mask.unsqueeze(1).unsqueeze(2)   # N, n_heads, T, d_k 를 만족시키기 위해. head에 대해 broadcasting 될 수 있도록
-
         output = self.attention(Q_, K_, V_, mask)                                      # N, n_heads, T, d_k
         output = output.transpose(1, 2)                                                # N, T, n_heads, d_k
         output = output.contiguous().view(n_batch, seq_len, self.n_heads * self.d_k)   # N, T, n_heads * self.d_k(=d_model)

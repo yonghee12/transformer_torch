@@ -30,12 +30,26 @@ class DecoderBlock(nn.Module):
 
 
 class InputBlock(nn.Module):
-    def __init__(self, vocab_size, d_model, pad_idx, to):
+    def __init__(self, vocab_size, embedding_dim, pad_idx, to):
         # to=0: Encoder, to=1: Decoder
         super().__init__()
-        self.embedding = nn.Embedding(vocab_size, d_model, padding_idx=pad_idx)
+        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
+        self.positional_encodeing = PositionalEncoding()
+
+    def forward(self, x):
+        """
+        :param x: 2d tensor (batch_size, seq_len)
+        :return: 3d tensor (batch_size, seq_len, embedding_dim)
+        """
+        x_emb = self.embedding(x)
+        x_pos = self.positional_encodeing(x_emb)
+        return x_pos
+
 
 
 class OutputBlock(nn.Module):
     def __init__(self):
         super().__init__()
+
+    def forward(self):
+        pass

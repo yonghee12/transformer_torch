@@ -8,8 +8,8 @@ class EncoderLayer(nn.Module):
         self.feed_forward = PositionWiseFeedForward(d_model, d_ff, dropout=dropout)
         self.addnorms = nn.ModuleList([AddNorm(d_model, dropout=dropout) for _ in range(2)])
 
-    def forward(self, x):
-        x1 = self.addnorms[0](x, self.self_attention(x))
+    def forward(self, x, enc_mask):
+        x1 = self.addnorms[0](x, self.self_attention(q=x, k=x, v=x, mask=enc_mask))
         x2 = self.addnorms[1](x1, self.feed_forward(x1))
         return x2
 
@@ -22,9 +22,9 @@ class DecoderLayer(nn.Module):
         self.feed_forward = PositionWiseFeedForward(d_model, d_ff, dropout=dropout)
         self.addnorms = nn.ModuleList([AddNorm(d_model, dropout=dropout) for _ in range(3)])
 
-    def forward(self, x, enc_out):
-        x1 = self.addnorms[0](x, self.self_attention(x, x, x))
-        x2 = self.addnorms[1](x1, self.encoder_attention(x1, enc_out, enc_out))
+    def forward(self, x, enc_out, enc_mask, dec_mask):
+        x1 = self.addnorms[0](x, self.self_attention(q=x, k=x, v=x, mask=dec_mask))
+        x2 = self.addnorms[1](x1, self.encoder_attention(q=x1, k=enc_out, v=enc_out, mask=enc_mask))
         x3 = self.addnorms[2](x2, self.feed_forward(x2))
         return x3
 

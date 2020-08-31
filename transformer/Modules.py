@@ -7,6 +7,11 @@ from torch.nn import functional as F
 from .Initialzers import *
 
 
+def get_padding_mask(x):
+    mask = x.unsqueeze(1).unsqueeze(2)  # N, n_heads, T, d_k 를 만족시키기 위해. head에 대해 broadcasting 될 수 있도록
+    return mask
+
+
 class LayerNorm(nn.Module):
     def __init__(self, dim, eps=1e-7):
         super().__init__()

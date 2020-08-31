@@ -43,9 +43,21 @@ class ScaledDotProductAttention(nn.Module):
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self):
+    def __init__(self, max_seq_len, d_model):
         super().__init__()
+        self.pe = self.get_positional_encoding(max_seq_len, d_model)
 
     def forward(self, x):
-        print("Not Implemented Yet")
-        return x
+        x += torch.tensor(self.pe[:, :])
+
+    @staticmethod
+    def get_positional_encoding(max_seq_len, d_model):
+        pe = torch.zeros(max_seq_len, d_model)
+        position = torch.arange(0, T, dtype=torch.float).unsqueeze(1)  # (T, 1) 텐서 만들어 broadcasting 유도
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (
+                -math.log(10000.0) / d_model))  # (d_model/2) size 1d 텐서로 broadcasting 유도
+        multiplied = position * div_term  # sin, cos 안에 들어가는 term은 같음
+        pe[:, 0::2] = torch.sin(multiplied)
+        pe[:, 1::2] = torch.cos(multiplied)
+        pe = pe.unsqueeze(0)
+        return pe

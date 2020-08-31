@@ -30,11 +30,11 @@ class DecoderBlock(nn.Module):
 
 
 class InputBlock(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, pad_idx, dropout=0.1):
+    def __init__(self, vocab_size, embedding_dim, seq_len, pad_idx, dropout=0.1):
         # to=0: Encoder, to=1: Decoder
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
-        self.positional_encodeing = PositionalEncoding()
+        self.positional_encodeing = PositionalEncoding(seq_len, embedding_dim)
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x):

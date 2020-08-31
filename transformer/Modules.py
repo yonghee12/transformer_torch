@@ -48,12 +48,13 @@ class PositionalEncoding(nn.Module):
         self.pe = self.get_positional_encoding(max_seq_len, d_model)
 
     def forward(self, x):
-        x += torch.tensor(self.pe[:, :])
+        x1 = x + torch.tensor(self.pe[:, :x.size(1)]).clone().detach()
+        return x1
 
     @staticmethod
     def get_positional_encoding(max_seq_len, d_model):
         pe = torch.zeros(max_seq_len, d_model)
-        position = torch.arange(0, T, dtype=torch.float).unsqueeze(1)  # (T, 1) 텐서 만들어 broadcasting 유도
+        position = torch.arange(0, max_seq_len, dtype=torch.float).unsqueeze(1)  # (T, 1) 텐서 만들어 broadcasting 유도
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (
                 -math.log(10000.0) / d_model))  # (d_model/2) size 1d 텐서로 broadcasting 유도
         multiplied = position * div_term  # sin, cos 안에 들어가는 term은 같음

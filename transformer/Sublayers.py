@@ -50,7 +50,7 @@ class MultiHeadAttention(nn.Module):
         K = k @ self.Wk
         V = v @ self.Wv
 
-        n_batch, seq_len, n_heads, d_k = Q.shape[0], Q.shape[1], self.n_heads, self.d_k
+        n_batch, q_seq_len, k_seq_len, n_heads, d_k = Q.shape[0], Q.shape[1], K.shape[1], self.n_heads, self.d_k
 
         # 1. 논문 그대로 잘라서 각각 attention한 후 합치는 방법
         # (N, T, d_k * n_heads)를 n_heads로 chunk 나누어 하나의 head: (N, T, d_k)를 만듦
@@ -65,11 +65,11 @@ class MultiHeadAttention(nn.Module):
 
         # 2. Vectorized Method
         # 목적: N, n_heads, T, d_k 모양을 만들어서 attention 진행
-        Q_ = torch.transpose(Q.view(n_batch, seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
-        K_ = torch.transpose(K.view(n_batch, seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
-        V_ = torch.transpose(V.view(n_batch, seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
+        Q_ = torch.transpose(Q.view(n_batch, q_seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
+        K_ = torch.transpose(K.view(n_batch, k_seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
+        V_ = torch.transpose(V.view(n_batch, k_seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
         output = self.attention(Q_, K_, V_, mask)                                      # N, n_heads, T, d_k
         output = output.transpose(1, 2)                                                # N, T, n_heads, d_k
-        output = output.contiguous().view(n_batch, seq_len, self.n_heads * self.d_k)   # N, T, n_heads * self.d_k(=d_model)
+        output = output.contiguous().view(n_batch, q_seq_len, self.n_heads * self.d_k)   # N, T, n_heads * self.d_k(=d_model)
 
         return output @ self.Wo

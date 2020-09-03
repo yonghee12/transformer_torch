@@ -19,7 +19,6 @@ class Transformer(nn.Module):
             self.enc_input.embedding.weight = self.dec_input.embedding.weight
 
         if dec_emb_output_weight_share:
-            # TODO: implement here
             pass
 
     def forward(self, enc_input, dec_input):

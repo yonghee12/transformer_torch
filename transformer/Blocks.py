@@ -58,4 +58,3 @@ class OutputBlock(nn.Module):
 
     def forward(self, x):
         return F.log_softmax(self.linear(x), dim=-1)
-

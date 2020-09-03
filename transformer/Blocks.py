@@ -52,8 +52,10 @@ class InputBlock(nn.Module):
 
 
 class OutputBlock(nn.Module):
-    def __init__(self):
+    def __init__(self, input_embedding, vocab_size):
         super().__init__()
+        self.linear = nn.Linear(input_embedding, vocab_size, bias=True)
 
-    def forward(self):
-        pass
+    def forward(self, x):
+        return F.log_softmax(self.linear(x), dim=-1)
+

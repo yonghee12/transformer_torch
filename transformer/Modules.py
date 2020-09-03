@@ -45,10 +45,10 @@ class ScaledDotProductAttention(nn.Module):
 class PositionalEncoding(nn.Module):
     def __init__(self, max_seq_len, d_model):
         super().__init__()
-        self.pe = self.get_positional_encoding(max_seq_len, d_model)
+        self.pe = nn.Parameter(self.get_positional_encoding(max_seq_len, d_model), requires_grad=False)
 
     def forward(self, x):
-        x1 = x + torch.tensor(self.pe[:, :x.size(1)]).clone().detach()
+        x1 = x + self.pe[:, :x.size(1)]
         return x1
 
     @staticmethod

@@ -6,11 +6,11 @@ from .Blocks import *
 
 
 class Transformer(nn.Module):
-    def __init__(self, enc_vocab_size, dec_vocab_size, max_seq_len, pad_idx=0, d_model=512, d_ff=2048, n_layers=8, n_heads=8,
+    def __init__(self, enc_vocab_size, dec_vocab_size, max_seq_len_enc, max_seq_len_dec, pad_idx=0, d_model=512, d_ff=2048, n_layers=8, n_heads=8,
                  dropout=0.1, dec_emb_output_weight_share=False, enc_dec_emb_weight_share=False):
         super().__init__()
-        self.enc_input = InputBlock(enc_vocab_size, d_model, max_seq_len, pad_idx, dropout=dropout)
-        self.dec_input = InputBlock(enc_vocab_size, d_model, max_seq_len, pad_idx, dropout=dropout)
+        self.enc_input = InputBlock(enc_vocab_size, d_model, max_seq_len_enc, pad_idx, dropout=dropout)
+        self.dec_input = InputBlock(enc_vocab_size, d_model, max_seq_len_dec, pad_idx, dropout=dropout)
         self.encoder = EncoderBlock(n_layers, d_model, d_ff, n_heads, dropout)
         self.decoder = DecoderBlock(n_layers, d_model, d_ff, n_heads, dropout)
         self.output = OutputBlock(d_model, dec_vocab_size)

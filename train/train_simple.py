@@ -18,7 +18,7 @@ x_dec = randint10(20, 4).to(device)
 y_true = randint10(20, 1).to(device)
 
 
-model = Transformer(enc_vocab, dec_vocab, x_enc.shape[1], -1, d_model, d_ff, n_layers, n_heads, dropout)
+model = Transformer(enc_vocab, dec_vocab, x_enc.shape[1], x_enc.shape[1], -1, d_model, d_ff, n_layers, n_heads, dropout)
 model = model.to(device)
 optimizer = Adam(model.parameters())
 

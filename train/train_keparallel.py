@@ -71,9 +71,9 @@ d_model = 32
 d_ff = 128
 n_layers = 3
 n_heads = 2
-dropout = 0.05
+dropout = 0.1
 # batch_size = len(X_enc) // 100
-batch_size = 1000
+batch_size = 1500
 
 train_ds = TensorDataset(X_enc_, X_dec_, y_true_)
 train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
@@ -83,11 +83,14 @@ model = Transformer(enc_vocab, dec_vocab, max_seq_len_enc, max_seq_len_dec, 0, d
 model = model.to(device)
 optimizer = Adam(model.parameters())
 
-n_epochs = 20
-verbose = 2
+# total: 120
+n_epochs = 120
+print_all = True
+verbose = 1
 progresses = {int(n_epochs // (100 / i)): i for i in range(1, 101, 1)}
 t0, durations = perf_counter(), list()
 
+model.train()
 for epoch in range(n_epochs):
     epoch_loss = 0
     for iteration, ds in enumerate(train_dl):
@@ -108,15 +111,63 @@ for epoch in range(n_epochs):
 
     durations.append(perf_counter() - t0)
     t0 = perf_counter()
-    if epoch in progresses:
+    if print_all or epoch in progresses:
         loss_s = round(epoch_loss / (iteration + 1), 3)
         perp = round(np.exp(loss_s).item(), 2)
         print(f"epoch: {epoch}, loss: {loss_s}, perp: {perp}")
 
-    print(f"epoch: {epoch}, loss: {round(epoch_loss / (iteration + 1), 3)}")
+if verbose > 0:
+    avg_epoch_time = sum(durations) / len(durations)
+    print("average epoch time:", round(avg_epoch_time, 3))
 
+# Generator
+
+token2idx_eng, idx2token_eng = get_item2idx(unique_tokens_eng, unique=True, start_from_one=True)
+token2idx_kor, idx2token_kor = get_item2idx(unique_tokens_kor, unique=True, start_from_one=True)
+
+with open("data/korean-english-parallel/test.txt") as f:
+    testdata = f.readlines()
+
+for line in testdata:
+    # input_s = "우리 내일 어디로 갈까?"
+    input_s = line
+    input_tokens = tokenizer_kor.morphs(input_s.strip())
+    input_tokens = ["<sos>"] + input_tokens + ["<eos>"]
+    input_padded = pad_sequence_list(input_tokens, max_len=max_seq_len_enc, method='post', truncating='post')
+    try:
+        X_input = [token2idx_kor[token] for token in input_padded]
+    except KeyError as e:
+        print(str(e))
+        # continue
+
+    gen = ['<sos>']
+    for _ in range(max_seq_len_dec):
+        gen_padded = pad_sequence_list(gen, max_len=max_seq_len_dec, method='post', truncating='post')
+        X_gen = [token2idx_eng[token] for token in gen_padded]
+
+        X_input_ = torch.tensor(X_input, device=device, requires_grad=False).unsqueeze(0)
+        X_gen_ = torch.tensor(X_gen, device=device, requires_grad=False).unsqueeze(0)
+
+        model.eval()
+        log_y_pred = model(X_input_, X_gen_).squeeze()
+        log_y_pred = log_y_pred[-1, :]
+        next_gen = torch.argmax(log_y_pred).item()
+        next_gen_s = idx2token_eng[next_gen]
+        gen.append(next_gen_s)
+        # print(' '.join(gen))
+        if next_gen_s == '<eos>':
+            print(input_s.strip())
+            print(' '.join(gen))
+            break
+
+
+log_y_pred = model(X_encoder, X_decoder)
+log_y_pred = log_y_pred[:, -1, :]
+torch.argmax(log_y_pred)
 # vocabs = set()
 # for row in X_enc:
 #     vocabs.update(set(row))
 # len(vocabs)
 # len(unique_tokens_kor)
+
+torch.save()

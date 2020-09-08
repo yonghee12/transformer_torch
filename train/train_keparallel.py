@@ -1,3 +1,4 @@
+import os
 from time import perf_counter
 
 from direct_redis import DirectRedis
@@ -14,6 +15,7 @@ REDIS = True
 r = DirectRedis(host='127.0.0.1', port='6379')
 device = torch.device('cuda:0')
 tokenizer_kor = KoreanTokenizer('mecab')
+
 
 
 def get_corpus_preprocessed():
@@ -56,6 +58,27 @@ def get_corpus_preprocessed():
     res = r.hset('keparallel', 'ilsang', corpus_set)
     print(f"Set redis reponse: {res}")
     return corpus_set
+
+
+def save_checkpoint(model, optimizer, epoch, loss_s, perp):
+    checkpoint = {
+        'model': model,
+        'optimizer': optimizer,
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+    }
+    modelpath = os.path.join('trained_models', f"epoch_{epoch}_loss_{loss_s}_perp_{perp}.checkpoint")
+    torch.save(checkpoint, modelpath)
+
+
+def load_checkpoint(filepath):
+    checkpoint = torch.load(filepath)
+    model_tmp = checkpoint['model']
+    model_tmp.load_state_dict(checkpoint['model_state_dict'])
+    optimizer_tmp = checkpoint['optimizer']
+    optimizer_tmp.load_state_dict(checkpoint['optimizer_state_dict'])
+    return model
 
 
 X_enc, X_dec, y_true, unique_tokens_kor, unique_tokens_eng, max_seq_len_enc, max_seq_len_dec = \
@@ -116,12 +139,16 @@ for epoch in range(n_epochs):
         perp = round(np.exp(loss_s).item(), 2)
         print(f"epoch: {epoch}, loss: {loss_s}, perp: {perp}")
 
+        save_checkpoint(model, optimizer, epoch, loss_s, perp)
+
 if verbose > 0:
     avg_epoch_time = sum(durations) / len(durations)
     print("average epoch time:", round(avg_epoch_time, 3))
 
-# Generator
 
+
+
+# Generator
 token2idx_eng, idx2token_eng = get_item2idx(unique_tokens_eng, unique=True, start_from_one=True)
 token2idx_kor, idx2token_kor = get_item2idx(unique_tokens_kor, unique=True, start_from_one=True)
 
@@ -130,44 +157,34 @@ with open("data/korean-english-parallel/test.txt") as f:
 
 for line in testdata:
     # input_s = "우리 내일 어디로 갈까?"
-    input_s = line
-    input_tokens = tokenizer_kor.morphs(input_s.strip())
+    input_s = line.strip()
+    input_tokens = tokenizer_kor.morphs(input_s)
     input_tokens = ["<sos>"] + input_tokens + ["<eos>"]
     input_padded = pad_sequence_list(input_tokens, max_len=max_seq_len_enc, method='post', truncating='post')
     try:
         X_input = [token2idx_kor[token] for token in input_padded]
-    except KeyError as e:
-        print(str(e))
-        # continue
+    except KeyError:
+        print(f'KeyError: {input_s}')
+    else:
+        gen = ['<sos>']
+        for _ in range(max_seq_len_dec):
+            gen_padded = pad_sequence_list(gen, max_len=max_seq_len_dec, method='post', truncating='post')
+            X_gen = [token2idx_eng[token] for token in gen_padded]
 
-    gen = ['<sos>']
-    for _ in range(max_seq_len_dec):
-        gen_padded = pad_sequence_list(gen, max_len=max_seq_len_dec, method='post', truncating='post')
-        X_gen = [token2idx_eng[token] for token in gen_padded]
+            X_input_ = torch.tensor(X_input, device=device, requires_grad=False).unsqueeze(0)
+            X_gen_ = torch.tensor(X_gen, device=device, requires_grad=False).unsqueeze(0)
 
-        X_input_ = torch.tensor(X_input, device=device, requires_grad=False).unsqueeze(0)
-        X_gen_ = torch.tensor(X_gen, device=device, requires_grad=False).unsqueeze(0)
-
-        model.eval()
-        log_y_pred = model(X_input_, X_gen_).squeeze()
-        log_y_pred = log_y_pred[-1, :]
-        next_gen = torch.argmax(log_y_pred).item()
-        next_gen_s = idx2token_eng[next_gen]
-        gen.append(next_gen_s)
-        # print(' '.join(gen))
-        if next_gen_s == '<eos>':
-            print(input_s.strip())
-            print(' '.join(gen))
-            break
+            model.eval()
+            # log_y_pred = model(X_input_, X_gen_).squeeze()
+            log_y_pred = model(X_input_, X_gen_).squeeze()
+            log_y_pred = log_y_pred[-1, :]
+            next_gen = torch.argmax(log_y_pred).item()
+            next_gen_s = idx2token_eng[next_gen]
+            gen.append(next_gen_s)
+            # print(' '.join(gen))
+            if next_gen_s == '<eos>':
+                print(input_s.strip())
+                print(' '.join(gen))
+                break
 
 
-log_y_pred = model(X_encoder, X_decoder)
-log_y_pred = log_y_pred[:, -1, :]
-torch.argmax(log_y_pred)
-# vocabs = set()
-# for row in X_enc:
-#     vocabs.update(set(row))
-# len(vocabs)
-# len(unique_tokens_kor)
-
-torch.save()

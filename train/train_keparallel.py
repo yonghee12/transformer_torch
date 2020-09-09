@@ -8,56 +8,15 @@ from torch.utils.data import TensorDataset
 
 from langframe import *
 from train.functions import *
+from train.preprocess import *
 from transformer.Models import *
 
 REDIS = True
+MAKE_MODEL = False
 
 r = DirectRedis(host='127.0.0.1', port='6379')
 device = torch.device('cuda:0')
 tokenizer_kor = KoreanTokenizer('mecab')
-
-
-
-def get_corpus_preprocessed():
-    df = pd.read_excel('data/korean-english-parallel/2_대화체_200226.xlsx')
-    df = df[df['대분류'] == '일상대화']
-    kor, eng = df['원문'].tolist(), df['번역문'].tolist()
-
-    tokenized_matrix_eng = get_tokenized_matrix(eng, 'word_tokenize', False, [])
-    tokenized_matrix_kor = [tokenizer_kor.morphs(text) for text in kor]
-
-    # add <sos>, <eos> tokens
-    tokenized_matrix_eng = [["<sos>"] + tokens + ["<eos>"] for tokens in tokenized_matrix_eng]
-    tokenized_matrix_kor = [["<sos>"] + tokens + ["<eos>"] for tokens in tokenized_matrix_kor]
-
-    # token2idx, idx2token 생성
-    unique_tokens_eng, unique_tokens_kor = get_uniques_from_nested_lists(
-        tokenized_matrix_eng), get_uniques_from_nested_lists(tokenized_matrix_kor)
-    token2idx_eng, idx2token_eng = get_item2idx(unique_tokens_eng, unique=True, start_from_one=True)
-    token2idx_kor, idx2token_kor = get_item2idx(unique_tokens_kor, unique=True, start_from_one=True)
-
-    # max_seq_len
-    max_seq_len_enc = get_max_seq_len(tokenized_matrix_kor)
-    max_seq_len_dec = get_max_seq_len(tokenized_matrix_eng)
-
-    # making sequence-wise inputs
-    X_enc, X_dec, y_true = [], [], []
-    for idx, tokens in enumerate(tokenized_matrix_eng):
-        X_enc.extend([tokenized_matrix_kor[idx] for _ in range(len(tokens) - 1)])
-        X_dec.extend([tokens[:seq_i] for seq_i in range(1, len(tokens))])
-        y_true.extend(tokens[1:])
-
-    # padding
-    padded_enc = pad_sequence_nested_lists(X_enc, max_len=max_seq_len_enc, method='post', truncating='post')
-    padded_dec = pad_sequence_nested_lists(X_dec, max_len=max_seq_len_dec, method='post', truncating='post')
-    X_enc = [[token2idx_kor[token] for token in row] for row in padded_enc]
-    X_dec = [[token2idx_eng[token] for token in row] for row in padded_dec]
-    y_true = [token2idx_eng[token] for token in y_true]
-    corpus_set = [X_enc, X_dec, y_true, unique_tokens_kor, unique_tokens_eng, max_seq_len_enc, max_seq_len_dec]
-
-    res = r.hset('keparallel', 'ilsang', corpus_set)
-    print(f"Set redis reponse: {res}")
-    return corpus_set
 
 
 def save_checkpoint(model, optimizer, epoch, loss_s, perp):
@@ -74,11 +33,11 @@ def save_checkpoint(model, optimizer, epoch, loss_s, perp):
 
 def load_checkpoint(filepath):
     checkpoint = torch.load(filepath)
-    model_tmp = checkpoint['model']
-    model_tmp.load_state_dict(checkpoint['model_state_dict'])
-    optimizer_tmp = checkpoint['optimizer']
-    optimizer_tmp.load_state_dict(checkpoint['optimizer_state_dict'])
-    return model
+    model_ = checkpoint['model']
+    model_.load_state_dict(checkpoint['model_state_dict'])
+    optimizer_ = checkpoint['optimizer']
+    optimizer_.load_state_dict(checkpoint['optimizer_state_dict'])
+    return model_, optimizer_
 
 
 X_enc, X_dec, y_true, unique_tokens_kor, unique_tokens_eng, max_seq_len_enc, max_seq_len_dec = \
@@ -88,26 +47,30 @@ X_enc_ = torch.tensor(X_enc, device=device, requires_grad=False)
 X_dec_ = torch.tensor(X_dec, device=device, requires_grad=False)
 y_true_ = torch.tensor(y_true, device=device, requires_grad=False)
 
-enc_vocab = len(unique_tokens_kor) + 1
-dec_vocab = len(unique_tokens_eng) + 1
-d_model = 32
-d_ff = 128
-n_layers = 3
-n_heads = 2
-dropout = 0.1
-# batch_size = len(X_enc) // 100
 batch_size = 1500
-
 train_ds = TensorDataset(X_enc_, X_dec_, y_true_)
 train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
 
-model = Transformer(enc_vocab, dec_vocab, max_seq_len_enc, max_seq_len_dec, 0, d_model, d_ff, n_layers, n_heads,
-                    dropout, False, False)
-model = model.to(device)
-optimizer = Adam(model.parameters())
+if MAKE_MODEL:
+    enc_vocab = len(unique_tokens_kor) + 1
+    dec_vocab = len(unique_tokens_eng) + 1
+    d_model = 32
+    d_ff = 128
+    n_layers = 3
+    n_heads = 2
+    dropout = 0.1
+    # batch_size = len(X_enc) // 100
 
-# total: 120
-n_epochs = 120
+    model = Transformer(enc_vocab, dec_vocab, max_seq_len_enc, max_seq_len_dec, 0, d_model, d_ff, n_layers, n_heads,
+                        dropout, False, False)
+    model = model.to(device)
+    optimizer = Adam(model.parameters())
+else:
+    path = 'trained_models/epoch_119_loss_2.416_perp_11.2.checkpoint'
+    model, optimizer = load_checkpoint(path)
+
+# total: 195
+n_epochs = 65
 print_all = True
 verbose = 1
 progresses = {int(n_epochs // (100 / i)): i for i in range(1, 101, 1)}
@@ -145,8 +108,7 @@ if verbose > 0:
     avg_epoch_time = sum(durations) / len(durations)
     print("average epoch time:", round(avg_epoch_time, 3))
 
-
-
+print()
 
 # Generator
 token2idx_eng, idx2token_eng = get_item2idx(unique_tokens_eng, unique=True, start_from_one=True)
@@ -155,6 +117,7 @@ token2idx_kor, idx2token_kor = get_item2idx(unique_tokens_kor, unique=True, star
 with open("data/korean-english-parallel/test.txt") as f:
     testdata = f.readlines()
 
+model.eval()
 for line in testdata:
     # input_s = "우리 내일 어디로 갈까?"
     input_s = line.strip()
@@ -174,7 +137,6 @@ for line in testdata:
             X_input_ = torch.tensor(X_input, device=device, requires_grad=False).unsqueeze(0)
             X_gen_ = torch.tensor(X_gen, device=device, requires_grad=False).unsqueeze(0)
 
-            model.eval()
             # log_y_pred = model(X_input_, X_gen_).squeeze()
             log_y_pred = model(X_input_, X_gen_).squeeze()
             log_y_pred = log_y_pred[-1, :]
@@ -183,8 +145,6 @@ for line in testdata:
             gen.append(next_gen_s)
             # print(' '.join(gen))
             if next_gen_s == '<eos>':
-                print(input_s.strip())
-                print(' '.join(gen))
+                print('원문: ' + input_s.strip())
+                print('번역: ' + ' '.join([tok for tok in gen if tok not in ('<sos>', '<eos>')]))
                 break
-
-

@@ -2,7 +2,7 @@ import os
 from time import perf_counter
 
 from direct_redis import DirectRedis
-from torch.optim import Adam
+from torch.optim import Adam, AdamW, Adagrad, SGD
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
 
@@ -11,8 +11,11 @@ from train.functions import *
 from train.preprocess import *
 from transformer.Models import *
 
+optimizers = {'Adam': Adam, "AdamW": AdamW, "Adagrad": Adagrad, "SGD": SGD}
+
 REDIS = True
 MAKE_MODEL = True
+OPTIMIZER = 'AdamW'
 
 r = DirectRedis(host='127.0.0.1', port='6379')
 device = torch.device('cuda:0')
@@ -50,7 +53,7 @@ X_enc_ = torch.tensor(X_enc, device=device, requires_grad=False)
 X_dec_ = torch.tensor(X_dec, device=device, requires_grad=False)
 y_true_ = torch.tensor(y_true, device=device, requires_grad=False)
 
-batch_size = 800
+batch_size = 1150
 train_ds = TensorDataset(X_enc_, X_dec_, y_true_)
 train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
 
@@ -116,37 +119,39 @@ for epoch in range(n_epochs):
         directory = 'trained_models'
         save_checkpoint(directory, model, optimizer, total_epochs, loss_s, perp)
 
-        model.eval()
-        for line in testdata:
-            # input_s = "우리 내일 어디로 갈까?"
-            input_s = line.strip()
-            input_tokens = tokenizer_kor.morphs(input_s)
-            input_tokens = ["<sos>"] + input_tokens + ["<eos>"]
-            input_padded = pad_sequence_list(input_tokens, max_len=max_seq_len_enc, method='post', truncating='post')
-            try:
-                X_input = [token2idx_kor[token] for token in input_padded]
-            except KeyError:
-                print(f'KeyError: {input_s}')
-            else:
-                gen = ['<sos>']
-                for _ in range(max_seq_len_dec):
-                    gen_padded = pad_sequence_list(gen, max_len=max_seq_len_dec, method='post', truncating='post')
-                    X_gen = [token2idx_eng[token] for token in gen_padded]
+        if perp < 50:
+            model.eval()
+            for line in testdata:
+                # input_s = "우리 내일 어디로 갈까?"
+                input_s = line.strip()
+                input_tokens = tokenizer_kor.morphs(input_s)
+                input_tokens = ["<sos>"] + input_tokens + ["<eos>"]
+                input_padded = pad_sequence_list(input_tokens, max_len=max_seq_len_enc, method='post', truncating='post')
+                try:
+                    X_input = [token2idx_kor[token] for token in input_padded]
+                except KeyError:
+                    print(f'KeyError: {input_s}')
+                else:
+                    gen = ['<sos>']
+                    for _ in range(max_seq_len_dec):
+                        gen_padded = pad_sequence_list(gen, max_len=max_seq_len_dec, method='post', truncating='post')
+                        X_gen = [token2idx_eng[token] for token in gen_padded]
 
-                    X_input_ = torch.tensor(X_input, device=device, requires_grad=False).unsqueeze(0)
-                    X_gen_ = torch.tensor(X_gen, device=device, requires_grad=False).unsqueeze(0)
+                        X_input_ = torch.tensor(X_input, device=device, requires_grad=False).unsqueeze(0)
+                        X_gen_ = torch.tensor(X_gen, device=device, requires_grad=False).unsqueeze(0)
 
-                    # log_y_pred = model(X_input_, X_gen_).squeeze()
-                    log_y_pred = model(X_input_, X_gen_).squeeze()
-                    log_y_pred = log_y_pred[-1, :]
-                    next_gen = torch.argmax(log_y_pred).item()
-                    next_gen_s = idx2token_eng[next_gen]
-                    gen.append(next_gen_s)
-                    # print(' '.join(gen))
-                    if next_gen_s == '<eos>':
-                        print('원문: ' + input_s.strip())
-                        print('번역: ' + ' '.join([tok for tok in gen if tok not in ('<sos>', '<eos>')]))
-                        break
+                        log_y_pred = model(X_input_, X_gen_).squeeze()
+                        log_y_pred = log_y_pred[-1, :]
+                        next_gen = torch.argmax(log_y_pred).item()
+                        next_gen_s = idx2token_eng[next_gen]
+                        gen.append(next_gen_s)
+
+                        if next_gen_s == '<eos>':
+                            print('원문: ' + input_s.strip())
+                            print('번역: ' + ' '.join([tok for tok in gen if tok not in ('<sos>', '<eos>')]))
+                            break
+                    print('(X) 원문: ' + input_s.strip())
+
     total_epochs += 1
 
 if verbose > 0:

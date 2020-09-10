@@ -16,6 +16,9 @@ optimizers = {'Adam': Adam, "AdamW": AdamW, "Adagrad": Adagrad, "SGD": SGD}
 REDIS = True
 MAKE_MODEL = True
 OPTIMIZER = 'AdamW'
+assert OPTIMIZER in optimizers
+recent = "epoch_100_loss_3.545_perp_34.64.checkpoint"
+
 
 r = DirectRedis(host='127.0.0.1', port='6379')
 device = torch.device('cuda:0')
@@ -62,7 +65,7 @@ if MAKE_MODEL:
     dec_vocab = len(unique_tokens_eng) + 1
     d_model = 128
     d_ff = 512
-    n_layers = 6
+    n_layers = 4
     n_heads = 4
     dropout = 0.1
     # batch_size = len(X_enc) // 100
@@ -70,7 +73,8 @@ if MAKE_MODEL:
     model = Transformer(enc_vocab, dec_vocab, max_seq_len_enc, max_seq_len_dec, 0, d_model, d_ff, n_layers, n_heads,
                         dropout, False, False)
     model = model.to(device)
-    optimizer = Adam(model.parameters())
+    optimizer = optimizers[OPTIMIZER]
+    optimizer = optimizer(model.parameters())
 else:
     path = 'trained_models/epoch_119_loss_2.416_perp_11.2.checkpoint'
     model, optimizer = load_checkpoint(path)
@@ -84,7 +88,7 @@ with open("data/korean-english-parallel/test.txt") as f:
 total_epochs = 0
 
 # train codes from here
-n_epochs = 30
+n_epochs = 15
 print_all = True
 verbose = 1
 progresses = {int(n_epochs // (100 / i)): i for i in range(1, 101, 1)}
@@ -157,6 +161,7 @@ for epoch in range(n_epochs):
 if verbose > 0:
     avg_epoch_time = sum(durations) / len(durations)
     print("average epoch time:", round(avg_epoch_time, 3))
+
 
 
 

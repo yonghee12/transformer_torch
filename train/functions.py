@@ -198,3 +198,8 @@ def tsne_plot(labels, vectors, filename, perplexity=10, figsize=(8, 8), cmap='ni
 
     timestamp = dt.today().strftime("%Y-%m-%d-%H-%M-%S")
     plt.savefig("results/{}_perp{}.png".format(filename, perplexity), dpi=dpi)
+
+
+
+
+

@@ -12,13 +12,12 @@ from train.preprocess import *
 from transformer.Models import *
 
 optimizers = {'Adam': Adam, "AdamW": AdamW, "Adagrad": Adagrad, "SGD": SGD}
-
 REDIS = True
-MAKE_MODEL = True
-OPTIMIZER = 'AdamW'
-assert OPTIMIZER in optimizers
-recent = "epoch_100_loss_3.545_perp_34.64.checkpoint"
+MAKE_MODEL = False
+OPTIMIZER = 'Adam'
+recent = "epoch_217_loss_2.872_perp_17.67.checkpoint"
 
+assert OPTIMIZER in optimizers
 
 r = DirectRedis(host='127.0.0.1', port='6379')
 device = torch.device('cuda:0')
@@ -76,19 +75,20 @@ if MAKE_MODEL:
     optimizer = optimizers[OPTIMIZER]
     optimizer = optimizer(model.parameters())
 else:
-    path = 'trained_models/epoch_119_loss_2.416_perp_11.2.checkpoint'
+    path = os.path.join('trained_models', recent)
     model, optimizer = load_checkpoint(path)
 
 token2idx_eng, idx2token_eng = get_item2idx(unique_tokens_eng, unique=True, start_from_one=True)
 token2idx_kor, idx2token_kor = get_item2idx(unique_tokens_kor, unique=True, start_from_one=True)
 with open("data/korean-english-parallel/test.txt") as f:
     testdata = f.readlines()
+    f.close()
 
 # init once
-total_epochs = 0
+total_epochs = 268
 
 # train codes from here
-n_epochs = 15
+n_epochs = 50
 print_all = True
 verbose = 1
 progresses = {int(n_epochs // (100 / i)): i for i in range(1, 101, 1)}
@@ -108,10 +108,12 @@ for epoch in range(n_epochs):
         epoch_loss += loss.item()
         optimizer.step()
 
-        if verbose >= 2:
+        if verbose >= 2 or epoch == 0:
             loss_s = round(loss.item(), 3)
             perp = round(np.exp(loss_s).item(), 2)
+            print('-' * 100)
             print(f"epoch-iter: {total_epochs}-{iteration}, loss: {loss_s}, perp: {perp}")
+            print('-' * 100)
 
     durations.append(perf_counter() - t0)
     t0 = perf_counter()
@@ -130,13 +132,15 @@ for epoch in range(n_epochs):
                 input_s = line.strip()
                 input_tokens = tokenizer_kor.morphs(input_s)
                 input_tokens = ["<sos>"] + input_tokens + ["<eos>"]
-                input_padded = pad_sequence_list(input_tokens, max_len=max_seq_len_enc, method='post', truncating='post')
+                input_padded = pad_sequence_list(input_tokens, max_len=max_seq_len_enc, method='post',
+                                                 truncating='post')
                 try:
                     X_input = [token2idx_kor[token] for token in input_padded]
                 except KeyError:
                     print(f'KeyError: {input_s}')
                 else:
                     gen = ['<sos>']
+                    printed = False
                     for _ in range(max_seq_len_dec):
                         gen_padded = pad_sequence_list(gen, max_len=max_seq_len_dec, method='post', truncating='post')
                         X_gen = [token2idx_eng[token] for token in gen_padded]
@@ -153,18 +157,17 @@ for epoch in range(n_epochs):
                         if next_gen_s == '<eos>':
                             print('원문: ' + input_s.strip())
                             print('번역: ' + ' '.join([tok for tok in gen if tok not in ('<sos>', '<eos>')]))
+                            printed = True
                             break
-                    print('(X) 원문: ' + input_s.strip())
+                    if not printed:
+                        print('(X) 원문: ' + input_s.strip())
+
 
     total_epochs += 1
 
 if verbose > 0:
     avg_epoch_time = sum(durations) / len(durations)
     print("average epoch time:", round(avg_epoch_time, 3))
-
-
-
-
 
 print()
 

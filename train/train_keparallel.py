@@ -15,7 +15,7 @@ optimizers = {'Adam': Adam, "AdamW": AdamW, "Adagrad": Adagrad, "SGD": SGD}
 REDIS = True
 MAKE_MODEL = False
 OPTIMIZER = 'Adam'
-recent = "epoch_217_loss_2.872_perp_17.67.checkpoint"
+recent = "epoch_374_loss_2.697_perp_14.84.checkpoint"
 
 assert OPTIMIZER in optimizers
 
@@ -85,10 +85,10 @@ with open("data/korean-english-parallel/test.txt") as f:
     f.close()
 
 # init once
-total_epochs = 268
+total_epochs = 375
 
 # train codes from here
-n_epochs = 50
+n_epochs = 145
 print_all = True
 verbose = 1
 progresses = {int(n_epochs // (100 / i)): i for i in range(1, 101, 1)}
@@ -171,41 +171,41 @@ if verbose > 0:
 
 print()
 
-# Generator
-token2idx_eng, idx2token_eng = get_item2idx(unique_tokens_eng, unique=True, start_from_one=True)
-token2idx_kor, idx2token_kor = get_item2idx(unique_tokens_kor, unique=True, start_from_one=True)
-
-with open("data/korean-english-parallel/test.txt") as f:
-    testdata = f.readlines()
-
-model.eval()
-for line in testdata:
-    # input_s = "우리 내일 어디로 갈까?"
-    input_s = line.strip()
-    input_tokens = tokenizer_kor.morphs(input_s)
-    input_tokens = ["<sos>"] + input_tokens + ["<eos>"]
-    input_padded = pad_sequence_list(input_tokens, max_len=max_seq_len_enc, method='post', truncating='post')
-    try:
-        X_input = [token2idx_kor[token] for token in input_padded]
-    except KeyError:
-        print(f'KeyError: {input_s}')
-    else:
-        gen = ['<sos>']
-        for _ in range(max_seq_len_dec):
-            gen_padded = pad_sequence_list(gen, max_len=max_seq_len_dec, method='post', truncating='post')
-            X_gen = [token2idx_eng[token] for token in gen_padded]
-
-            X_input_ = torch.tensor(X_input, device=device, requires_grad=False).unsqueeze(0)
-            X_gen_ = torch.tensor(X_gen, device=device, requires_grad=False).unsqueeze(0)
-
-            # log_y_pred = model(X_input_, X_gen_).squeeze()
-            log_y_pred = model(X_input_, X_gen_).squeeze()
-            log_y_pred = log_y_pred[-1, :]
-            next_gen = torch.argmax(log_y_pred).item()
-            next_gen_s = idx2token_eng[next_gen]
-            gen.append(next_gen_s)
-            # print(' '.join(gen))
-            if next_gen_s == '<eos>':
-                print('원문: ' + input_s.strip())
-                print('번역: ' + ' '.join([tok for tok in gen if tok not in ('<sos>', '<eos>')]))
-                break
+# # Generator
+# token2idx_eng, idx2token_eng = get_item2idx(unique_tokens_eng, unique=True, start_from_one=True)
+# token2idx_kor, idx2token_kor = get_item2idx(unique_tokens_kor, unique=True, start_from_one=True)
+#
+# with open("data/korean-english-parallel/test.txt") as f:
+#     testdata = f.readlines()
+#
+# model.eval()
+# for line in testdata:
+#     # input_s = "우리 내일 어디로 갈까?"
+#     input_s = line.strip()
+#     input_tokens = tokenizer_kor.morphs(input_s)
+#     input_tokens = ["<sos>"] + input_tokens + ["<eos>"]
+#     input_padded = pad_sequence_list(input_tokens, max_len=max_seq_len_enc, method='post', truncating='post')
+#     try:
+#         X_input = [token2idx_kor[token] for token in input_padded]
+#     except KeyError:
+#         print(f'KeyError: {input_s}')
+#     else:
+#         gen = ['<sos>']
+#         for _ in range(max_seq_len_dec):
+#             gen_padded = pad_sequence_list(gen, max_len=max_seq_len_dec, method='post', truncating='post')
+#             X_gen = [token2idx_eng[token] for token in gen_padded]
+#
+#             X_input_ = torch.tensor(X_input, device=device, requires_grad=False).unsqueeze(0)
+#             X_gen_ = torch.tensor(X_gen, device=device, requires_grad=False).unsqueeze(0)
+#
+#             # log_y_pred = model(X_input_, X_gen_).squeeze()
+#             log_y_pred = model(X_input_, X_gen_).squeeze()
+#             log_y_pred = log_y_pred[-1, :]
+#             next_gen = torch.argmax(log_y_pred).item()
+#             next_gen_s = idx2token_eng[next_gen]
+#             gen.append(next_gen_s)
+#             # print(' '.join(gen))
+#             if next_gen_s == '<eos>':
+#                 print('원문: ' + input_s.strip())
+#                 print('번역: ' + ' '.join([tok for tok in gen if tok not in ('<sos>', '<eos>')]))
+#                 break

@@ -15,7 +15,7 @@ optimizers = {'Adam': Adam, "AdamW": AdamW, "Adagrad": Adagrad, "SGD": SGD}
 REDIS = True
 MAKE_MODEL = False
 OPTIMIZER = 'Adam'
-recent = "epoch_374_loss_2.697_perp_14.84.checkpoint"
+recent = "epoch_386_loss_2.678_perp_14.56.checkpoint"
 
 assert OPTIMIZER in optimizers
 
@@ -80,15 +80,16 @@ else:
 
 token2idx_eng, idx2token_eng = get_item2idx(unique_tokens_eng, unique=True, start_from_one=True)
 token2idx_kor, idx2token_kor = get_item2idx(unique_tokens_kor, unique=True, start_from_one=True)
+
 with open("data/korean-english-parallel/test.txt") as f:
     testdata = f.readlines()
     f.close()
 
 # init once
-total_epochs = 375
+total_epochs = 387
 
 # train codes from here
-n_epochs = 145
+n_epochs = 23
 print_all = True
 verbose = 1
 progresses = {int(n_epochs // (100 / i)): i for i in range(1, 101, 1)}

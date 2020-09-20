@@ -60,5 +60,5 @@ class PositionalEncoding(nn.Module):
         multiplied = position * div_term                                            # sin, cos 안에 들어가는 term은 같음
         pe[:, 0::2] = torch.sin(multiplied)
         pe[:, 1::2] = torch.cos(multiplied)
-        pe = pe.unsqueeze(0)                                                        # 3차원인 embeddin 이후 값에 대응하기 위함
+        pe = pe.unsqueeze(0)                                                        # 3차원인 embedding 이후 값에 대응하기 위함
         return pe

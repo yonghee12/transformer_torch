@@ -15,7 +15,7 @@ optimizers = {'Adam': Adam, "AdamW": AdamW, "Adagrad": Adagrad, "SGD": SGD}
 REDIS = True
 MAKE_MODEL = False
 OPTIMIZER = 'Adam'
-recent = "epoch_398_loss_2.659_perp_14.28.checkpoint"
+recent = "epoch_436_loss_2.651_perp_14.17.checkpoint"
 
 assert OPTIMIZER in optimizers
 
@@ -86,10 +86,10 @@ with open("data/korean-english-parallel/test.txt") as f:
     f.close()
 
 # init once
-total_epochs = 399
+total_epochs = 437
 
 # train codes from here
-n_epochs = 101
+n_epochs = 43
 print_all = True
 verbose = 1
 progresses = {int(n_epochs // (100 / i)): i for i in range(1, 101, 1)}

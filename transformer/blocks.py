@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .Layers import *
+from .layers import *
 
 
 class TransformerEncoderBlock(nn.Module):

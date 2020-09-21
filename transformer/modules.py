@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .Initialzers import *
+from .initialzers import *
 
 
 def get_padding_mask(x):

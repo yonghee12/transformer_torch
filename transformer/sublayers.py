@@ -1,4 +1,4 @@
-from .Modules import *
+from .modules import *
 
 
 class AddNorm(nn.Module):

@@ -1,4 +1,3 @@
-import torch
 from torch.nn.init import *
 
 

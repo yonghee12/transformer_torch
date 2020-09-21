@@ -1,7 +1,7 @@
 from .Sublayers import *
 
 
-class EncoderLayer(nn.Module):
+class TransformerEncoderLayer(nn.Module):
     def __init__(self, d_model, d_ff, n_heads, dropout=0.1):
         super().__init__()
         self.self_attention = MultiHeadAttention(d_model, n_heads, dropout=dropout)
@@ -14,7 +14,7 @@ class EncoderLayer(nn.Module):
         return x2
 
 
-class DecoderLayer(nn.Module):
+class TransformerDecoderLayer(nn.Module):
     def __init__(self, d_model, d_ff, n_heads, dropout=0.1):
         super().__init__()
         self.self_attention = MultiHeadAttention(d_model, n_heads, dropout=dropout)

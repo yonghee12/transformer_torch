@@ -8,9 +8,9 @@ from .layers import *
 
 
 class TransformerEncoderBlock(nn.Module):
-    def __init__(self, n_layers, d_model, d_ff, n_heads=8, dropout=0.1):
+    def __init__(self, n_layers, d_model, d_ff, n_heads=8, activation='relu', dropout=0.1):
         super().__init__()
-        self.layers = nn.ModuleList([TransformerEncoderLayer(d_model, d_ff, n_heads, dropout) for _ in range(n_layers)])
+        self.layers = nn.ModuleList([TransformerEncoderLayer(d_model, d_ff, n_heads, activation, dropout) for _ in range(n_layers)])
 
     def forward(self, x, enc_mask):
         for layer in self.layers:
@@ -19,9 +19,9 @@ class TransformerEncoderBlock(nn.Module):
 
 
 class TransformerDecoderBlock(nn.Module):
-    def __init__(self, n_layers, d_model, d_ff, n_heads=8, dropout=0.1):
+    def __init__(self, n_layers, d_model, d_ff, n_heads=8, activation='relu', dropout=0.1):
         super().__init__()
-        self.layers = nn.ModuleList([TransformerDecoderLayer(d_model, d_ff, n_heads, dropout) for _ in range(n_layers)])
+        self.layers = nn.ModuleList([TransformerDecoderLayer(d_model, d_ff, n_heads, activation, dropout) for _ in range(n_layers)])
 
     def forward(self, x, enc_output, enc_mask, dec_mask):
         for layer in self.layers:

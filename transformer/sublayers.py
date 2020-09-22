@@ -12,13 +12,18 @@ class AddNorm(nn.Module):
 
 
 class PositionWiseFeedForward(nn.Module):
-    def __init__(self, d_model, d_ff, dropout=0.1):
+    _activations = {'relu': nn.ReLU,
+                    'gelu': nn.GELU}
+
+    def __init__(self, d_model, d_ff, activation='relu', dropout=0.1):
+        assert activation in self._activations
         super().__init__()
         self.fc1 = nn.Linear(d_model, d_ff)
         self.fc2 = nn.Linear(d_ff, d_model)
+        self.activation = self._activations[activation]()
 
     def forward(self, x0):
-        x1 = F.relu(self.fc1(x0))
+        x1 = self.activation(self.fc1(x0))
         Fx = self.fc2(x1)
         return Fx
 
@@ -65,11 +70,12 @@ class MultiHeadAttention(nn.Module):
 
         # 2. Vectorized Method
         # 목적: N, n_heads, T, d_k 모양을 만들어서 attention 진행
-        Q_ = torch.transpose(Q.view(n_batch, q_seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
-        K_ = torch.transpose(K.view(n_batch, k_seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
-        V_ = torch.transpose(V.view(n_batch, k_seq_len, self.n_heads, self.d_k), 1, 2)   # N, n_heads, T, d_k
-        output = self.attention(Q_, K_, V_, mask)                                      # N, n_heads, T, d_k
-        output = output.transpose(1, 2)                                                # N, T, n_heads, d_k
-        output = output.contiguous().view(n_batch, q_seq_len, self.n_heads * self.d_k)   # N, T, n_heads * self.d_k(=d_model)
+        Q_ = torch.transpose(Q.view(n_batch, q_seq_len, self.n_heads, self.d_k), 1, 2)  # N, n_heads, T, d_k
+        K_ = torch.transpose(K.view(n_batch, k_seq_len, self.n_heads, self.d_k), 1, 2)  # N, n_heads, T, d_k
+        V_ = torch.transpose(V.view(n_batch, k_seq_len, self.n_heads, self.d_k), 1, 2)  # N, n_heads, T, d_k
+        output = self.attention(Q_, K_, V_, mask)  # N, n_heads, T, d_k
+        output = output.transpose(1, 2)  # N, T, n_heads, d_k
+        output = output.contiguous().view(n_batch, q_seq_len,
+                                          self.n_heads * self.d_k)  # N, T, n_heads * self.d_k(=d_model)
 
         return output @ self.Wo

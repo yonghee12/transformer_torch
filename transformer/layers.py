@@ -2,10 +2,10 @@ from .sublayers import *
 
 
 class TransformerEncoderLayer(nn.Module):
-    def __init__(self, d_model, d_ff, n_heads, dropout=0.1):
+    def __init__(self, d_model, d_ff, n_heads, activation='relu', dropout=0.1):
         super().__init__()
         self.self_attention = MultiHeadAttention(d_model, n_heads, dropout=dropout)
-        self.feed_forward = PositionWiseFeedForward(d_model, d_ff, dropout=dropout)
+        self.feed_forward = PositionWiseFeedForward(d_model, d_ff, activation=activation, dropout=dropout)
         self.addnorms = nn.ModuleList([AddNorm(d_model, dropout=dropout) for _ in range(2)])
 
     def forward(self, x, enc_mask):
@@ -15,11 +15,11 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class TransformerDecoderLayer(nn.Module):
-    def __init__(self, d_model, d_ff, n_heads, dropout=0.1):
+    def __init__(self, d_model, d_ff, n_heads, activation='relu', dropout=0.1):
         super().__init__()
         self.self_attention = MultiHeadAttention(d_model, n_heads, dropout=dropout)
         self.encoder_attention = MultiHeadAttention(d_model, n_heads, dropout=dropout)
-        self.feed_forward = PositionWiseFeedForward(d_model, d_ff, dropout=dropout)
+        self.feed_forward = PositionWiseFeedForward(d_model, d_ff, activation=activation, dropout=dropout)
         self.addnorms = nn.ModuleList([AddNorm(d_model, dropout=dropout) for _ in range(3)])
 
     def forward(self, x, enc_out, enc_mask, dec_mask):

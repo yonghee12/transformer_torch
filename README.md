@@ -6,6 +6,11 @@ This repository is the result of fixing errors and cleaning codes in pytorch-OOP
 ## Examples
 - Trained on 20k Korean-English parallel corpus for two hours with general GPU.
 - These test sentences is not from the train corpus.
+- Hyperparameters
+    - d_model = 32
+    - d_ff = 128
+    - n_layers = 3
+    - n_heads = 2
 ```
 우리 내일 어디로 갈까?
 <sos> where should we go tomorrow ? <eos>

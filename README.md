@@ -5,7 +5,7 @@ This repository is the result of fixing errors and cleaning codes in pytorch-OOP
 
 ## Examples
 - Trained on 20k Korean-English parallel corpus for two hours with general GPU.
-- These test sentences is not from the train corpus.
+- These test sentences are not from the train corpus.
 - Hyperparameters
     - d_model = 32
     - d_ff = 128
